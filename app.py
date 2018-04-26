@@ -6,15 +6,16 @@ from pyspark.sql import SparkSession
 
 app = Flask(__name__)
 
-def tokenize(sentence):
-    n = 100
-    spark = SparkSession.builder.appName("Tokenize").getOrCreate()
+def process_keywords(sentence, keyword):
+    n = 50
+    spark = SparkSession.builder.appName("Keywords").getOrCreate()
 
     # udf
     def f(s):
-        from nltk.tokenize import TweetTokenizer
-        tokenizer = TweetTokenizer()
-        return tokenizer.tokenize(s)
+        from flashtext import KeywordProcessor
+        keyword_processor = KeywordProcessor(case_sensitive=False)
+        keyword_processor.add_keyword(keyword)
+        return keyword_processor.extract_keywords(sentence, span_info=True)
 
     # create n sentences
     sentences = [sentence] * n
@@ -25,8 +26,13 @@ def tokenize(sentence):
 @app.route("/")
 def root():
     sentence = request.args.get('text', 'The quick brown fox jumps over the lazy dog')
-    tokens = tokenize(sentence)
-    return ', '.join(tokens)
+    keyword = request.args.get('keyword', 'fox')
+    result = process_keywords(sentence, keyword)
+    print(result)
+    if result == []:
+        return 'not found'
+    else:
+        return result[0][0] + ' start at: ' + str(result[0][1]) + ' end at: ' + str(result[0][2])
 
 
 if __name__ == "__main__":
