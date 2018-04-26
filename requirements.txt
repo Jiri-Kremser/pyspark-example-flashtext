@@ -1,1 +1,2 @@
+flashtext==2.7
 Flask==0.12.2
